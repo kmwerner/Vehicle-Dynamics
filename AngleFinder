@@ -1,0 +1,48 @@
+#AngleFinder.ipynb
+# Kyle and Carlo 1/9/2015
+#   This script reads a file arranged like so:
+#   [x1,y1],[x2,y2],[x3,y3]...
+#   Working methodology:
+#   1. Read x pos of rear axle (origin point of vehicle)
+#   2. Generate y pos of rear axle from tire radius
+#   3. Iterate from an angle of pi/2 down to -pi/2, generate the distance between the front tire and the ground for each.
+#   4. Return the vehicle's body angle with respect to the null plane. This will be used to later calculate tractive effort for hill climbing/decending.
+
+import bisect
+
+def interpolate(x1,x2,y1,y2,xvalue):
+    "Linear interpolation between two points x1 and x2 with y values y1 and y2. Finds yvalue corresponding to xvalue"
+    slope = (y2-y1)/(x2-x1)
+    yvalue = y1 + slope*(xvalue-x1)
+    return yvalue
+
+def elevation(xPosition):
+    xylist = []
+    "Finds the elevation (y coordinate) for each x coordinate. Throws an exception if x-coordinate is out of range for the input file."
+    with open('elevationdata.txt') as elev:
+        for line in elev.readlines():
+            xylist.append([float(line.split(' ')[0]),float(line.split(' ')[1].rstrip())])
+
+    xvalues=zip(*xylist)[0]
+    yvalues=zip(*xylist)[1]
+    
+    #check that the xPosition value falls within the dataset provided, else return elevation of 0
+    if xPosition >= min(xvalues) and xPosition <= max(xvalues):
+        if xPosition in xvalues:
+            #if xPosition is literally in the list, then just lookup the y value associated with it
+            elevation=float(yvalues[xvalues.index(xPosition)])
+            print 'found it in the list'
+        else:
+            #use a simple linear interpolation to calculate the elevation between two points.
+            x1=xvalues[bisect.bisect(xvalues,xPosition)-1]
+            x2=xvalues[bisect.bisect(xvalues,xPosition)]
+            y1=yvalues[bisect.bisect(xvalues,xPosition)-1]
+            y2=yvalues[bisect.bisect(xvalues,xPosition)]
+            elevation = float(interpolate(x1,x2,y1,y2,xPosition))
+            print 'had to interpolate'
+    else:
+        elevation = float(0)
+        print 'outta bounds'
+    return(elevation)
+
+print elevation(-1005)
